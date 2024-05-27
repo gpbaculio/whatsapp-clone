@@ -1,11 +1,12 @@
 import { View, Text } from "react-native";
 import React from "react";
+import { DynamicView } from "@/components";
 
 const index = () => {
   return (
-    <View>
-      <Text>Phil Dominic 3year Baculio</Text>
-    </View>
+    <DynamicView p="xl">
+      <Text>Phil Dominic 3years Baculio</Text>
+    </DynamicView>
   );
 };
 

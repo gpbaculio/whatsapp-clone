@@ -38,6 +38,7 @@ const theme = createTheme({
     },
   },
   containerVariants: {
+    defaults: {},
     rowAlignCenter: {
       flexDirection: "row",
       alignItems: "center",
