@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import {
   DynamicKeyboardAvoidingView,
   DynamicText,
+  DynamicTouchableOpacity,
   DynamicView,
 } from "@/components";
 import Colors from "@/constants/Colors";
@@ -94,6 +95,39 @@ const otp = () => {
             style={styles.input}
           />
         </DynamicView>
+        <DynamicText fontSize={12} textAlign="center" color="black">
+          You must be{" "}
+          <DynamicText color="primary" onPress={openLink}>
+            at least 16 years old
+          </DynamicText>{" "}
+          to register. Learn how WhatsApp works with the{" "}
+          <DynamicText color="primary" onPress={openLink}>
+            Meta Companies
+          </DynamicText>
+          .
+        </DynamicText>
+
+        <DynamicView flex={1} />
+
+        <DynamicTouchableOpacity
+          width="100%"
+          alignItems="center"
+          backgroundColor="lightGray"
+          padding="s"
+          borderRadius={10}
+          mb="l"
+          style={[phoneNumber !== "" ? styles.enabled : null]}
+          onPress={sendOTP}
+        >
+          <DynamicText
+            color="gray"
+            fontSize={22}
+            fontWeight="500"
+            style={phoneNumber !== "" ? styles.enabled : null}
+          >
+            Next
+          </DynamicText>
+        </DynamicTouchableOpacity>
       </DynamicView>
     </DynamicKeyboardAvoidingView>
   );
@@ -108,5 +142,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     padding: 6,
     marginTop: 10,
+  },
+  enabled: {
+    backgroundColor: Colors.primary,
+    color: "#fff",
   },
 });
