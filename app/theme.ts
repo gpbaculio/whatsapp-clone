@@ -22,6 +22,8 @@ const theme = createTheme({
     gray: Colors.gray,
     primary: Colors.primary,
     background: Colors.background,
+    lightGray: Colors.lightGray,
+    black: "#000000",
   },
   spacing: {
     s: 8,
