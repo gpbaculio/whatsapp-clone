@@ -1,4 +1,10 @@
-import { Platform, Linking, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  Platform,
+  Linking,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
 import MaskInput from "react-native-mask-input";
 import React, { useState } from "react";
 import {
@@ -9,11 +15,20 @@ import {
 } from "@/components";
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
+import {
+  isClerkAPIResponseError,
+  useSignIn,
+  useSignUp,
+} from "@clerk/clerk-expo";
+import { PhoneCodeFactor, SignInFirstFactor } from "@clerk/types";
+import { useRouter } from "expo-router";
+const { signUp, setActive } = useSignUp();
+const { signIn } = useSignIn();
 
-const GER_PHONE = [
-  `+`,
-  /\d/,
-  /\d/,
+const PH_PHONE = [
+  "+",
+  "6",
+  "3",
   " ",
   /\d/,
   /\d/,
@@ -23,7 +38,7 @@ const GER_PHONE = [
   /\d/,
   /\d/,
   /\d/,
-  /\d/,
+  " ",
   /\d/,
   /\d/,
   /\d/,
@@ -32,17 +47,64 @@ const GER_PHONE = [
 const keyboardVerticalOffset = Platform.OS === "ios" ? 90 : 0;
 const otp = () => {
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
   const [phoneNumber, setPhoneNumber] = useState("");
 
   const openLink = () => {
     Linking.openURL("https://galaxies.dev");
   };
 
-  const sendOTP = async () => {};
+  const sendOTP = async () => {
+    setLoading(true);
 
-  const trySignIn = async () => {};
+    try {
+      await signUp!.create({
+        phoneNumber,
+      });
+
+      await signUp!.preparePhoneNumberVerification();
+
+      router.push(`/verify/${phoneNumber}`);
+    } catch (err) {
+      if (isClerkAPIResponseError(err)) {
+        if (err.errors[0].code === "form_identifier_exists") {
+          await trySignIn();
+        } else {
+          setLoading(false);
+          Alert.alert("Error", err.errors[0].message);
+        }
+      }
+    }
+  };
+
+  const trySignIn = async () => {
+    const { supportedFirstFactors } = await signIn!.create({
+      identifier: phoneNumber,
+    });
+
+    const firstPhoneFactor = supportedFirstFactors.find(
+      (factor: SignInFirstFactor) => {
+        return factor.strategy === "phone_code";
+      }
+    ) as PhoneCodeFactor;
+
+    const { phoneNumberId } = firstPhoneFactor;
+
+    await signIn!.prepareFirstFactor({
+      strategy: "phone_code",
+      phoneNumberId,
+    });
+
+    router.push(`/verify/${phoneNumber}?signin=true`);
+    setLoading(false);
+  };
+
   return (
-    <DynamicKeyboardAvoidingView flex={1}>
+    <DynamicKeyboardAvoidingView
+      flex={1}
+      keyboardVerticalOffset={keyboardVerticalOffset}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       {loading ? (
         <DynamicView
           backgroundColor="white"
@@ -87,11 +149,11 @@ const otp = () => {
             value={phoneNumber}
             keyboardType="numeric"
             autoFocus
-            placeholder="+12 your phone number"
-            onChangeText={(masked, unmasked) => {
+            placeholder="+63 912 3456 789"
+            onChangeText={(masked) => {
               setPhoneNumber(masked);
             }}
-            mask={GER_PHONE}
+            mask={PH_PHONE}
             style={styles.input}
           />
         </DynamicView>

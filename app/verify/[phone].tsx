@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet } from "react-native";
-import React, { useState } from "react";
+import { StyleSheet, Alert } from "react-native";
+import React, { useEffect, useState } from "react";
 import { Stack, useLocalSearchParams } from "expo-router";
 import {
   CodeField,
@@ -12,6 +12,11 @@ import {
   DynamicTouchableOpacity,
   DynamicView,
 } from "@/components";
+import {
+  isClerkAPIResponseError,
+  useSignIn,
+  useSignUp,
+} from "@clerk/clerk-expo";
 
 const CELL_COUNT = 6;
 
@@ -20,6 +25,9 @@ const Phone = () => {
     phone: string;
     signin: string;
   }>();
+
+  const { signUp, setActive } = useSignUp();
+  const { signIn } = useSignIn();
   const [code, setCode] = useState("");
 
   const ref = useBlurOnFulfill({ value: code, cellCount: CELL_COUNT });
@@ -27,6 +35,78 @@ const Phone = () => {
     value: code,
     setValue: setCode,
   });
+
+  const verifyCode = async () => {
+    try {
+      await signUp!.attemptPhoneNumberVerification({
+        code,
+      });
+
+      await setActive!({ session: signUp!.createdSessionId });
+    } catch (err) {
+      console.log("error", JSON.stringify(err, null, 2));
+      if (isClerkAPIResponseError(err)) {
+        Alert.alert("Error", err.errors[0].message);
+      }
+    }
+  };
+
+  const veryifySignIn = async () => {
+    try {
+      await signIn!.attemptFirstFactor({
+        strategy: "phone_code",
+        code,
+      });
+
+      await setActive!({ session: signIn!.createdSessionId });
+    } catch (err) {
+      if (isClerkAPIResponseError(err)) {
+        Alert.alert("Error", err.errors[0].message);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (code.length === 6) {
+      if (signin === "true") {
+        veryifySignIn();
+      } else {
+        verifyCode();
+      }
+    }
+  }, [code]);
+
+  const resendCode = async () => {
+    try {
+      if (signin === "true") {
+        const { supportedFirstFactors } = await signIn!.create({
+          identifier: phone as string,
+        });
+
+        const firstPhoneFactor: any = supportedFirstFactors.find(
+          (factor: any) => {
+            return factor.strategy === "phone_code";
+          }
+        );
+
+        const { phoneNumberId } = firstPhoneFactor;
+
+        await signIn!.prepareFirstFactor({
+          strategy: "phone_code",
+          phoneNumberId,
+        });
+      } else {
+        await signUp!.create({
+          phoneNumber: phone,
+        });
+        signUp!.preparePhoneNumberVerification();
+      }
+    } catch (err) {
+      if (isClerkAPIResponseError(err)) {
+        Alert.alert("Error", err.errors[0].message);
+      }
+    }
+  };
 
   return (
     <DynamicView flex={1} p="l" backgroundColor="background" gap="l">
