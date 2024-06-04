@@ -40,3 +40,6 @@ yarn-error.*
 expo-env.d.ts
 # @end expo-cli
 .env
+ios/whatsappclone/Info.plist
+ios/whatsappclone.xcodeproj/project.pbxproj
+android/app/src/main/res/values/strings.xml
