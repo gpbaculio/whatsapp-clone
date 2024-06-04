@@ -12,11 +12,6 @@ import {
   DynamicTouchableOpacity,
   DynamicView,
 } from "@/components";
-import {
-  isClerkAPIResponseError,
-  useSignIn,
-  useSignUp,
-} from "@clerk/clerk-expo";
 
 const CELL_COUNT = 6;
 
@@ -26,8 +21,6 @@ const Phone = () => {
     signin: string;
   }>();
 
-  const { signUp, setActive } = useSignUp();
-  const { signIn } = useSignIn();
   const [code, setCode] = useState("");
 
   const ref = useBlurOnFulfill({ value: code, cellCount: CELL_COUNT });
@@ -36,35 +29,9 @@ const Phone = () => {
     setValue: setCode,
   });
 
-  const verifyCode = async () => {
-    try {
-      await signUp!.attemptPhoneNumberVerification({
-        code,
-      });
+  const verifyCode = async () => {};
 
-      await setActive!({ session: signUp!.createdSessionId });
-    } catch (err) {
-      console.log("error", JSON.stringify(err, null, 2));
-      if (isClerkAPIResponseError(err)) {
-        Alert.alert("Error", err.errors[0].message);
-      }
-    }
-  };
-
-  const veryifySignIn = async () => {
-    try {
-      await signIn!.attemptFirstFactor({
-        strategy: "phone_code",
-        code,
-      });
-
-      await setActive!({ session: signIn!.createdSessionId });
-    } catch (err) {
-      if (isClerkAPIResponseError(err)) {
-        Alert.alert("Error", err.errors[0].message);
-      }
-    }
-  };
+  const veryifySignIn = async () => {};
 
   useEffect(() => {
     if (code.length === 6) {
@@ -76,37 +43,7 @@ const Phone = () => {
     }
   }, [code]);
 
-  const resendCode = async () => {
-    try {
-      if (signin === "true") {
-        const { supportedFirstFactors } = await signIn!.create({
-          identifier: phone as string,
-        });
-
-        const firstPhoneFactor: any = supportedFirstFactors.find(
-          (factor: any) => {
-            return factor.strategy === "phone_code";
-          }
-        );
-
-        const { phoneNumberId } = firstPhoneFactor;
-
-        await signIn!.prepareFirstFactor({
-          strategy: "phone_code",
-          phoneNumberId,
-        });
-      } else {
-        await signUp!.create({
-          phoneNumber: phone,
-        });
-        signUp!.preparePhoneNumberVerification();
-      }
-    } catch (err) {
-      if (isClerkAPIResponseError(err)) {
-        Alert.alert("Error", err.errors[0].message);
-      }
-    }
-  };
+  const resendCode = async () => {};
 
   return (
     <DynamicView flex={1} p="l" backgroundColor="background" gap="l">
@@ -147,7 +84,7 @@ const Phone = () => {
       <DynamicTouchableOpacity
         width="100%"
         alignItems="center"
-        onPress={() => {}}
+        onPress={resendCode}
       >
         <DynamicText color="primary" fontSize={18}>
           Didn't receive a verification code?

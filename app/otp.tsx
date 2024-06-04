@@ -4,9 +4,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Button,
 } from "react-native";
 import MaskInput from "react-native-mask-input";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   DynamicKeyboardAvoidingView,
   DynamicText,
@@ -15,15 +16,13 @@ import {
 } from "@/components";
 import Colors from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  isClerkAPIResponseError,
-  useSignIn,
-  useSignUp,
-} from "@clerk/clerk-expo";
-import { PhoneCodeFactor, SignInFirstFactor } from "@clerk/types";
 import { useRouter } from "expo-router";
-const { signUp, setActive } = useSignUp();
-const { signIn } = useSignIn();
+import {
+  AccessToken,
+  GraphRequest,
+  GraphRequestManager,
+  LoginButton,
+} from "react-native-fbsdk-next";
 
 const PH_PHONE = [
   "+",
@@ -46,6 +45,8 @@ const PH_PHONE = [
 
 const keyboardVerticalOffset = Platform.OS === "ios" ? 90 : 0;
 const otp = () => {
+  const [user, setUser] = useState(null);
+
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -54,49 +55,26 @@ const otp = () => {
     Linking.openURL("https://galaxies.dev");
   };
 
-  const sendOTP = async () => {
-    setLoading(true);
-
-    try {
-      await signUp!.create({
-        phoneNumber,
-      });
-
-      await signUp!.preparePhoneNumberVerification();
-
-      router.push(`/verify/${phoneNumber}`);
-    } catch (err) {
-      if (isClerkAPIResponseError(err)) {
-        if (err.errors[0].code === "form_identifier_exists") {
-          await trySignIn();
+  const getData = () => {
+    const infoRequest = new GraphRequest(
+      "/me",
+      {
+        parameters: {
+          fields: {
+            string: "name,picture.type(large)",
+          },
+        },
+      },
+      (error, result) => {
+        if (error) {
+          console.log("Error fetching data: " + error.toString());
         } else {
-          setLoading(false);
-          Alert.alert("Error", err.errors[0].message);
+          console.log("result ", result);
         }
       }
-    }
-  };
+    );
 
-  const trySignIn = async () => {
-    const { supportedFirstFactors } = await signIn!.create({
-      identifier: phoneNumber,
-    });
-
-    const firstPhoneFactor = supportedFirstFactors.find(
-      (factor: SignInFirstFactor) => {
-        return factor.strategy === "phone_code";
-      }
-    ) as PhoneCodeFactor;
-
-    const { phoneNumberId } = firstPhoneFactor;
-
-    await signIn!.prepareFirstFactor({
-      strategy: "phone_code",
-      phoneNumberId,
-    });
-
-    router.push(`/verify/${phoneNumber}?signin=true`);
-    setLoading(false);
+    new GraphRequestManager().addRequest(infoRequest).start();
   };
 
   return (
@@ -135,7 +113,7 @@ const otp = () => {
         >
           <DynamicView variant="rowCenterBetween" p="s" mb="s">
             <DynamicText fontSize={18} color="primary">
-              Germany
+              Philippines
             </DynamicText>
             <Ionicons name="chevron-forward" size={20} color={Colors.gray} />
           </DynamicView>
@@ -171,7 +149,23 @@ const otp = () => {
 
         <DynamicView flex={1} />
 
-        <DynamicTouchableOpacity
+        <LoginButton
+          onLoginFinished={(error, result) => {
+            if (error) {
+              console.log("login has error: " + error);
+            } else if (result.isCancelled) {
+              console.log("login is cancelled.");
+            } else {
+              AccessToken.getCurrentAccessToken().then((data) => {
+                console.log(data?.accessToken.toString());
+              });
+            }
+          }}
+          onLogoutFinished={() => console.log("logout.")}
+        />
+        <Button title="Get Data" onPress={getData} />
+
+        {/* <DynamicTouchableOpacity
           width="100%"
           alignItems="center"
           backgroundColor="lightGray"
@@ -179,7 +173,7 @@ const otp = () => {
           borderRadius={10}
           mb="l"
           style={[phoneNumber !== "" ? styles.enabled : null]}
-          onPress={sendOTP}
+          onPress={handlePressAsync}
         >
           <DynamicText
             color="gray"
@@ -187,9 +181,9 @@ const otp = () => {
             fontWeight="500"
             style={phoneNumber !== "" ? styles.enabled : null}
           >
-            Next
+            Sign in With Facebook
           </DynamicText>
-        </DynamicTouchableOpacity>
+        </DynamicTouchableOpacity> */}
       </DynamicView>
     </DynamicKeyboardAvoidingView>
   );
